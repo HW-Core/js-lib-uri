@@ -1,0 +1,11 @@
+{
+  "name": "hw2/modules/js/src/library/uri",
+  "devDependencies": {
+    "%tests": "hw2-core/js-library-uri#tests",
+    "%doc": "hw2-core/js-library-uri#doc"
+  },
+  "keep": [
+    ".git/config"
+  ],
+  "license": "http://www.hyperweb2.com/terms"
+}
