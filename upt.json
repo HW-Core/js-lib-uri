@@ -1,11 +1,15 @@
 {
-  "name": "hw2/modules/js/src/library/uri",
-  "devDependencies": {
-    "%tests": "hw2-core/js-library-uri#tests",
-    "%doc": "hw2-core/js-library-uri#doc"
-  },
-  "keep": [
-    ".git/config"
-  ],
-  "license": "http://www.hyperweb2.com/terms"
+    "name": "hw2/modules/js/src/library/uri",
+    "license": "http://www.hyperweb2.com/terms",
+    "dependencies": {
+        "%class": "hw2-core/js-library-class#*"
+    },
+    "devDependencies": {
+        "%tests": "hw2-core/js-library-uri#tests",
+        "%doc": "hw2-core/js-library-uri#doc"
+    },
+    "_comment_keep": "ensure we keep the right git repository configurations",
+    "keep": [
+        ".git/config"
+    ]
 }
