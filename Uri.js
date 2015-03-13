@@ -7,52 +7,56 @@
 
 hw2.define([
     'hw2!PATH_JS_LIB:uri/include.js'
-],function () {
+], function () {
     var $ = this;
-    $.Uri = $.Class({members: [
-            {
-                attributes: "private",
-                name: "url",
-                val: null
-            },
-            {
-                attributes: "private",
-                name: "parsedUrl",
-                val: null
-            },
-            {
-                attributes: "public",
-                name: "__construct",
-                val: function (url) {
+    return $.Uri = $.Class({members: [
+            /**
+             * Private
+             */
+            {attributes: "private", name: "url", val: null},
+            {attributes: "private", name: "parsedUrl", val: null},
+            {attributes: "private", name: "parsedQuery", val: null},
+            /**
+             * Public
+             */
+            {attributes: "public", name: "__construct", val: function (url, parseFragment) {
                     if (typeof url !== "string")
                         throw new Error("Url must be a string!");
 
                     this._i.url = url;
 
-                    this._i.parsedUrl = this.i.parseUrl(url);
+                    this._i.parsedUrl = this.s.parseUrl(url);
+                    this._i.parsedQuery = this.s.parseQuery(this._i.parsedUrl.query);
+
+                    // useful with single page apps
+                    if (parseFragment) {
+                        this._i.parsedUrl.fragment = new $.Uri(this._i.parsedUrl.fragment,false);
+                    }
                 }
             },
-            {
-                attributes: "public",
-                name: "getFragment",
-                val: function () {
+            {attributes: "public", name: "toString", val: function () {
+                    return this._i.url;
+                }
+            },
+            {attributes: "public", name: "getFragment", val: function () {
                     return this.i.getParsedUrl().fragment;
                 }
             },
-            {
-                attributes: "public",
-                name: "getParsedUrl",
-                val: function () {
+            {attributes: "public", name: "getParsedUrl", val: function () {
                     return this._i.parsedUrl;
                 }
             },
-            {
-                attributes: "public",
-                name: "getParam",
-                val: function (key) {
-                    var query = this.i.getParsedUrl().query;
+            {attributes: "public", name: "getParsedQuery", val: function () {
+                    return this._i.parsedQuery;
+                }
+            },
+            {attributes: "public", name: "getParam", val: function (key) {
+                    return this.i.parsedQuery[key];
+                }
+            },
+            {attributes: ["public", "static"], name: "parseQuery", val: function (query) {
                     if (!query)
-                        return;
+                        return null;
 
                     var query_string = {};
 
@@ -72,43 +76,29 @@ hw2.define([
                         }
                     }
 
-                    if (key) {
-                        return query_string[key];
-                    } else
-                        return query_string;
+                    return query_string;
                 }
             },
-            {
-                attributes: "public",
-                name: "parseUrl",
-                val: function (str, component) {
-                    //       discuss at: http://phpjs.org/functions/parse_url/
-                    //      original by: Steven Levithan (http://blog.stevenlevithan.com)
-                    // reimplemented by: Brett Zamir (http://brett-zamir.me)
-                    //         input by: Lorenzo Pisani
-                    //         input by: Tony
-                    //      improved by: Brett Zamir (http://brett-zamir.me)
-                    //             note: original by http://stevenlevithan.com/demo/parseuri/js/assets/parseuri.js
-                    //             note: blog post at http://blog.stevenlevithan.com/archives/parseuri
-                    //             note: demo at http://stevenlevithan.com/demo/parseuri/js/assets/parseuri.js
-                    //             note: Does not replace invalid characters with '_' as in PHP, nor does it return false with
-                    //             note: a seriously malformed URL.
-                    //             note: Besides function name, is essentially the same as parseUri as well as our allowing
-                    //             note: an extra slash after the scheme/protocol (to allow file:/// as in PHP)
-                    //        example 1: parse_url('http://username:password@hostname/path?arg=value#anchor');
-                    //        returns 1: {scheme: 'http', host: 'hostname', user: 'username', pass: 'password', path: '/path', query: 'arg=value', fragment: 'anchor'}
-
+            // from: http://phpjs.org/functions/parse_url/
+            // note: Does not replace invalid characters with '_' as in PHP, nor does it return false with
+            // a seriously malformed URL.
+            // Besides function name, is essentially the same as parseUri as well as our allowing
+            // an extra slash after the scheme/protocol (to allow file:/// as in PHP)
+            // 
+            // example 1: parseUrl('http://username:password@hostname/path?arg=value#anchor');
+            // returns 1: {scheme: 'http', host: 'hostname', user: 'username', pass: 'password', path: '/path', query: 'arg=value', fragment: 'anchor'}
+            {attributes: ["public", "static"], name: "parseUrl", val: function (str, mode, component, queryKey) {
                     var query, key = ['source', 'scheme', 'authority', 'userInfo', 'user', 'pass', 'host', 'port',
                         'relative', 'path', 'directory', 'file', 'query', 'fragment'
                     ],
-                            ini = (this.php_js && this.php_js.ini) || {},
-                            mode = (ini['phpjs.parse_url.mode'] &&
-                                    ini['phpjs.parse_url.mode'].local_value) || 'php',
                             parser = {
                                 php: /^(?:([^:\/?#]+):)?(?:\/\/()(?:(?:()(?:([^:@]*):?([^:@]*))?@)?([^:\/?#]*)(?::(\d*))?))?()(?:(()(?:(?:[^?#\/]*\/)*)()(?:[^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
                                 strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*):?([^:@]*))?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
-                                loose: /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/\/?)?((?:(([^:@]*):?([^:@]*))?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/ // Added one optional slash to post-scheme to catch file:/// (should restrict this)
+                                // Added one optional slash to post-scheme to catch file:/// (should restrict this)
+                                loose: /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/\/?)?((?:(([^:@]*):?([^:@]*))?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
                             };
+
+                    mode = mode || 'php';
 
                     var m = parser[mode].exec(str),
                             uri = {},
@@ -123,9 +113,9 @@ hw2.define([
                         return uri[component.replace('PHP_URL_', '')
                                 .toLowerCase()];
                     }
+
                     if (mode !== 'php') {
-                        var name = (ini['phpjs.parse_url.queryKey'] &&
-                                ini['phpjs.parse_url.queryKey'].local_value) || 'queryKey';
+                        var name = queryKey || 'queryKey';
                         parser = /(?:^|&)([^&=]*)=?([^&]*)/g;
                         uri[name] = {};
                         query = uri[key[12]] || '';
