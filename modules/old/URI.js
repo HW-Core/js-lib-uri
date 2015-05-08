@@ -1,7 +1,7 @@
 /*!
  * URI.js - Mutating URLs
  *
- * Version: 1.15.1
+ * Version: 1.14.2
  *
  * Author: Rodney Rehm
  * Web: http://medialize.github.io/URI.js/
@@ -34,27 +34,12 @@
   var _URI = root && root.URI;
 
   function URI(url, base) {
-    var _urlSupplied = arguments.length >= 1;
-    var _baseSupplied = arguments.length >= 2;
-
     // Allow instantiation without the 'new' keyword
     if (!(this instanceof URI)) {
-      if (_urlSupplied) {
-        if (_baseSupplied) {
-          return new URI(url, base);
-        }
-
-        return new URI(url);
-      }
-
-      return new URI();
+      return new URI(url, base);
     }
 
     if (url === undefined) {
-      if (_urlSupplied) {
-        throw new TypeError('undefined is not a valid argument for URI');
-      }
-
       if (typeof location !== 'undefined') {
         url = location.href + '';
       } else {
@@ -72,7 +57,7 @@
     return this;
   }
 
-  URI.version = '1.15.1';
+  URI.version = '1.14.2';
 
   var p = URI.prototype;
   var hasOwn = Object.prototype.hasOwnProperty;
@@ -99,9 +84,7 @@
     var lookup = {};
     var i, length;
 
-    if (getType(value) === 'RegExp') {
-      lookup = null;
-    } else if (isArray(value)) {
+    if (isArray(value)) {
       for (i = 0, length = value.length; i < length; i++) {
         lookup[value[i]] = true;
       }
@@ -110,11 +93,7 @@
     }
 
     for (i = 0, length = data.length; i < length; i++) {
-      /*jshint laxbreak: true */
-      var _match = lookup && lookup[data[i]] !== undefined
-        || !lookup && value.test(data[i]);
-      /*jshint laxbreak: false */
-      if (_match) {
+      if (lookup[data[i]] !== undefined) {
         data.splice(i, 1);
         length--;
         i--;
@@ -341,42 +320,6 @@
           '%3D': '='
         }
       }
-    },
-    urnpath: {
-      // The characters under `encode` are the characters called out by RFC 2141 as being acceptable
-      // for usage in a URN. RFC2141 also calls out "-", ".", and "_" as acceptable characters, but
-      // these aren't encoded by encodeURIComponent, so we don't have to call them out here. Also
-      // note that the colon character is not featured in the encoding map; this is because URI.js
-      // gives the colons in URNs semantic meaning as the delimiters of path segements, and so it
-      // should not appear unencoded in a segment itself.
-      // See also the note above about RFC3986 and capitalalized hex digits.
-      encode: {
-        expression: /%(21|24|27|28|29|2A|2B|2C|3B|3D|40)/ig,
-        map: {
-          '%21': '!',
-          '%24': '$',
-          '%27': '\'',
-          '%28': '(',
-          '%29': ')',
-          '%2A': '*',
-          '%2B': '+',
-          '%2C': ',',
-          '%3B': ';',
-          '%3D': '=',
-          '%40': '@'
-        }
-      },
-      // These characters are the characters called out by RFC2141 as "reserved" characters that
-      // should never appear in a URN, plus the colon character (see note above).
-      decode: {
-        expression: /[\/\?#:]/g,
-        map: {
-          '/': '%2F',
-          '?': '%3F',
-          '#': '%23',
-          ':': '%3A'
-        }
-      }
     }
   };
   URI.encodeQuery = function(string, escapeQuerySpace) {
@@ -403,6 +346,22 @@
       return string;
     }
   };
+  URI.recodePath = function(string) {
+    var segments = (string + '').split('/');
+    for (var i = 0, length = segments.length; i < length; i++) {
+      segments[i] = URI.encodePathSegment(URI.decode(segments[i]));
+    }
+
+    return segments.join('/');
+  };
+  URI.decodePath = function(string) {
+    var segments = (string + '').split('/');
+    for (var i = 0, length = segments.length; i < length; i++) {
+      segments[i] = URI.decodePathSegment(segments[i]);
+    }
+
+    return segments.join('/');
+  };
   // generate encode/decode path functions
   var _parts = {'encode':'encode', 'decode':'decode'};
   var _part;
@@ -424,39 +383,7 @@
 
   for (_part in _parts) {
     URI[_part + 'PathSegment'] = generateAccessor('pathname', _parts[_part]);
-    URI[_part + 'UrnPathSegment'] = generateAccessor('urnpath', _parts[_part]);
   }
-
-  var generateSegmentedPathFunction = function(_sep, _codingFuncName, _innerCodingFuncName) {
-    return function(string) {
-      // Why pass in names of functions, rather than the function objects themselves? The
-      // definitions of some functions (but in particular, URI.decode) will occasionally change due
-      // to URI.js having ISO8859 and Unicode modes. Passing in the name and getting it will ensure
-      // that the functions we use here are "fresh".
-      var actualCodingFunc;
-      if (!_innerCodingFuncName) {
-        actualCodingFunc = URI[_codingFuncName];
-      } else {
-        actualCodingFunc = function(string) {
-          return URI[_codingFuncName](URI[_innerCodingFuncName](string));
-        };
-      }
-
-      var segments = (string + '').split(_sep);
-
-      for (var i = 0, length = segments.length; i < length; i++) {
-        segments[i] = actualCodingFunc(segments[i]);
-      }
-
-      return segments.join(_sep);
-    };
-  };
-
-  // This takes place outside the above loop because we don't want, e.g., encodeUrnPath functions.
-  URI.decodePath = generateSegmentedPathFunction('/', 'decodePathSegment');
-  URI.decodeUrnPath = generateSegmentedPathFunction(':', 'decodeUrnPathSegment');
-  URI.recodePath = generateSegmentedPathFunction('/', 'encodePathSegment', 'decode');
-  URI.recodeUrnPath = generateSegmentedPathFunction(':', 'encodeUrnPathSegment', 'decode');
 
   URI.encodeReserved = generateAccessor('reserved', 'encode');
 
@@ -750,12 +677,6 @@
       for (i = 0, length = name.length; i < length; i++) {
         data[name[i]] = undefined;
       }
-    } else if (getType(name) === 'RegExp') {
-      for (key in data) {
-        if (name.test(key)) {
-          data[key] = undefined;
-        }
-      }
     } else if (typeof name === 'object') {
       for (key in name) {
         if (hasOwn.call(name, key)) {
@@ -764,13 +685,7 @@
       }
     } else if (typeof name === 'string') {
       if (value !== undefined) {
-        if (getType(value) === 'RegExp') {
-          if (!isArray(data[name]) && value.test(data[name])) {
-            data[name] = undefined;
-          } else {
-            data[name] = filterArrayValues(data[name], value);
-          }
-        } else if (data[name] === value) {
+        if (data[name] === value) {
           data[name] = undefined;
         } else if (isArray(data[name])) {
           data[name] = filterArrayValues(data[name], value);
@@ -779,7 +694,7 @@
         data[name] = undefined;
       }
     } else {
-      throw new TypeError('URI.removeQuery() accepts an object, string, RegExp as the first parameter');
+      throw new TypeError('URI.addQuery() accepts an object, string as the first parameter');
     }
   };
   URI.hasQuery = function(data, name, value, withinArray) {
@@ -1027,13 +942,9 @@
   p.pathname = function(v, build) {
     if (v === undefined || v === true) {
       var res = this._parts.path || (this._parts.hostname ? '/' : '');
-      return v ? (this._parts.urn ? URI.decodeUrnPath : URI.decodePath)(res) : res;
+      return v ? URI.decodePath(res) : res;
     } else {
-      if (this._parts.urn) {
-        this._parts.path = v ? URI.recodeUrnPath(v) : '';
-      } else {
-        this._parts.path = v ? URI.recodePath(v) : '/';
-      }
+      this._parts.path = v ? URI.recodePath(v) : '/';
       this.build(!build);
       return this;
     }
@@ -1709,7 +1620,6 @@
     if (this._parts.urn) {
       return this
         .normalizeProtocol(false)
-        .normalizePath(false)
         .normalizeQuery(false)
         .normalizeFragment(false)
         .build();
@@ -1756,22 +1666,16 @@
     return this;
   };
   p.normalizePath = function(build) {
-    var _path = this._parts.path;
-    if (!_path) {
-      return this;
-    }
-
     if (this._parts.urn) {
-      this._parts.path = URI.recodeUrnPath(this._parts.path);
-      this.build(!build);
       return this;
     }
 
-    if (this._parts.path === '/') {
+    if (!this._parts.path || this._parts.path === '/') {
       return this;
     }
 
     var _was_relative;
+    var _path = this._parts.path;
     var _leadingParents = '';
     var _parent, _pos;
 
@@ -1855,12 +1759,9 @@
 
     URI.encode = escape;
     URI.decode = decodeURIComponent;
-    try {
-      this.normalize();
-    } finally {
-      URI.encode = e;
-      URI.decode = d;
-    }
+    this.normalize();
+    URI.encode = e;
+    URI.decode = d;
     return this;
   };
 
@@ -1871,12 +1772,9 @@
 
     URI.encode = strictEncodeURIComponent;
     URI.decode = unescape;
-    try {
-      this.normalize();
-    } finally {
-      URI.encode = e;
-      URI.decode = d;
-    }
+    this.normalize();
+    URI.encode = e;
+    URI.decode = d;
     return this;
   };
 
@@ -1961,7 +1859,6 @@
 
     if (resolved.path().charAt(0) !== '/') {
       basedir = base.directory();
-      basedir = basedir ? basedir : base.path().indexOf('/') === 0 ? '/' : '';
       resolved._parts.path = (basedir ? (basedir + '/') : '') + resolved._parts.path;
       resolved.normalizePath();
     }
