@@ -5,9 +5,9 @@
 
 'use strict';
 
-hw2.define([
-    //'hw2!{PATH_JS_LIB}event/include.js', normally already loaded by following libs
-    'hw2!{PATH_JS_LIB}uri/Uri.js'
+hwc.define([
+    //'hwc!{PATH_JS_LIB}event/include.js', normally already loaded by following libs
+    'hwc!{PATH_JS_LIB}uri/Uri.js'
 ],function () {
     var $ = this;
 });

@@ -1,12 +1,12 @@
 'use strict';
 
-hw2.define([
-    'hw2!{PATH_JS_LIB}uri/include.js',
+hwc.define([
+    'hwc!{PATH_JS_LIB}uri/include.js',
     // fragmentURI already includes URI.js
-    //'hw2!{PATH_JS_LIB}uri/modules/URI.js',
-    //'hw2!{PATH_JS_LIB}uri/modules/URI.fragmentQuery.js',
-    'hw2!{PATH_JS_LIB}uri/modules/URI.fragmentURI.js',
-    'hw2!{PATH_JS_LIB}uri/modules/URITemplate.js'
+    //'hwc!{PATH_JS_LIB}uri/modules/URI.js',
+    //'hwc!{PATH_JS_LIB}uri/modules/URI.fragmentQuery.js',
+    'hwc!{PATH_JS_LIB}uri/modules/URI.fragmentURI.js',
+    'hwc!{PATH_JS_LIB}uri/modules/URITemplate.js'
 ], function (inc, URI) {
     var $ = this;
 
